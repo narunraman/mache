@@ -95,20 +95,20 @@ inside `.review/`, which never leaves your machine.
 your repository (what you push)          private history (.review/, never pushed)
 
 ● Draft the paper
-│                                        ● you comment on §4
-│                                        ● agent edits §4 and replies
-│                                        ● you accept the edit
-│                                        ● agent adds a paragraph
-│                                        ● you reject it
-│      mache commit: squash, keeping     │
-│      only the text you accepted        │
-● Revise §4  ◀───────────────────────────┘
-│                                        ● agent moves a paragraph in §2
-│                                        ● you reply: "shorter?"
-│                                        ● agent shortens it
-│                                        ● you accept both
-│      mache commit                      │
-● Tighten §2  ◀──────────────────────────┘
+│                                               ● you comment on §4
+│                                               ● agent edits §4 and replies
+│                                               ● you accept the edit
+│                                               ● agent adds a paragraph
+│                                               ● you reject it
+│               mache commit: squash, keeping   │
+│               only the text you accepted      │
+● Revise §4  ◀──────────────────────────────────┘
+│                                               ● agent moves a paragraph in §2
+│                                               ● you reply: "shorter?"
+│                                               ● agent shortens it
+│                                               ● you accept both
+│               mache commit                    │
+● Tighten §2  ◀─────────────────────────────────┘
 ```
 
 Your paper's own repository sees none of that until you run `mache commit`. It squashes everything
