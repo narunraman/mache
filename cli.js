@@ -20,6 +20,8 @@ const HELP = `mache — suggestions, comments and history for a LaTeX paper
   status                         every pending suggestion, per file
   start [files...]               start reviewing files (default: every .tex file in the paper)
   summary                        the commit message for everything since the last commit
+  setup                          install the Mâché extension into this machine's VS Code
+  vsix [file]                    write the extension package (default: mache.vsix)
   commit [--no-edit]             commit the accepted text with that message
 
 A comment is waiting when its thread's last word is the author's. Edit the .tex files directly;
@@ -344,10 +346,25 @@ async function commit(root, opts) {
   console.log(`Committed the accepted text of ${sg.plural(staged, 'file')}. Pending suggestions stay in the working files.`);
 }
 
+function setupExtension() {
+  const { installed, failed, none } = require('./core/vsix').install();
+  if (none) fail('no VS Code found (the `code` command, or a VS Code server in ~/.vscode-server); run `mache vsix` and install mache.vsix from VS Code: Extensions → ⋯ → Install from VSIX…');
+  if (installed.length) console.log(`Installed the Mâché extension in: ${installed.join(', ')}. Reload VS Code windows (Developer: Reload Window) to use it.`);
+  if (failed.length) fail(`could not install into: ${failed.join(', ')}`);
+}
+
 async function main() {
   const opts = parse(process.argv.slice(2));
   const cmd = opts._.shift();
   if (opts.help || cmd === 'help') { console.log(HELP); return; }
+  // These two are about the extension, not a paper, so they work anywhere.
+  if (cmd === 'setup') return setupExtension();
+  if (cmd === 'vsix') {
+    const out = path.resolve(opts._[0] || 'mache.vsix');
+    fs.writeFileSync(out, require('./core/vsix').pack());
+    console.log(out);
+    return;
+  }
   const here = opts.root ? path.resolve(opts.root) : process.cwd();
   const root = cmd === 'start' ? project.newRoot(opts._[0] ? path.resolve(here, opts._[0]) : here) : project.reviewRoot(here);
   if (!root) {

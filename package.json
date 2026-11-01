@@ -2,7 +2,7 @@
   "name": "mache",
   "displayName": "Mâché",
   "description": "Review an agent's edits to a LaTeX paper: suggestions, comments and history.",
-  "version": "0.1.0",
+  "version": "0.1.1",
   "publisher": "narunraman",
   "license": "MIT",
   "repository": {
@@ -246,14 +246,13 @@
     "core/",
     "extension.js",
     "panel.js",
-    "parser.js",
-    "convert.js",
     "media/",
     "README.md",
     "LICENSE"
   ],
   "scripts": {
     "test": "node --test test/core.test.js test/cli.test.js",
-    "test:vscode": "node test/vscode/run.js"
+    "test:vscode": "node test/vscode/run.js",
+    "package": "node cli.js vsix"
   }
 }

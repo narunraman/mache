@@ -4,6 +4,29 @@ Write a LaTeX paper together with an AI agent, the way you would with a co-autho
 Docs: its edits arrive as suggestions you can see, discuss, accept or reject, and nothing becomes
 part of the paper until you say so.
 
+## Install
+
+You need [Node.js](https://nodejs.org) and VS Code.
+
+```bash
+npm install -g github:narunraman/mache   # the mache command
+mache setup                              # the Mâché extension, in every VS Code on this machine
+```
+
+`mache setup` finds the `code` command and, if you connect to this machine with Remote-SSH or a
+tunnel, the VS Code server here too; reload VS Code afterwards. (With
+[kagaz](https://github.com/narunraman/kagaz), `kagaz new` and `kagaz setup` do both steps.) To
+install by hand instead, `mache vsix` writes `mache.vsix` for Extensions → ⋯ → "Install from
+VSIX…".
+
+Mâché sets the editor settings it needs for LaTeX files itself. Two more make removed text red
+and full length; `kagaz setup` adds them to a paper's workspace, or add them yourself:
+
+```json
+"workbench.colorCustomizations": { "editorInlayHint.foreground": "#f14c4c", "editorInlayHint.background": "#d73a4a30" },
+"editor.inlayHints.maximumLength": 0
+```
+
 ## The problem
 
 Agents are good at editing prose, and asking one to tighten a section or answer a reviewer is
@@ -125,6 +148,8 @@ lists the rest.
 | `mache start [files…]` | start reviewing files (default: every `.tex` file in the paper) |
 | `mache summary` | the commit message for everything since the last commit |
 | `mache commit` | commit the accepted text with that message (`--no-edit` to skip the editor) |
+| `mache setup` | install the Mâché extension into this machine's VS Code |
+| `mache vsix [file]` | write the extension package, to install by hand |
 
 Messages are the agent's unless you add `--as user`. Accepting, rejecting and resolving are
 deliberately not commands: those are the author's calls, made in the editor.
@@ -158,28 +183,6 @@ the paper's root (the folder with `kagaz.toml`, else the top of the git reposito
 copies are only ever changed by your Accept, Reject or own edits; agents are told never to touch
 the folder, and do not need to.
 
-## Install
-
-For now, from a checkout:
-
-```bash
-node mache/cli.js help          # the command line needs only Node.js
-python3 mache/build-vsix.py     # builds mache/mache.vsix
-code --install-extension mache/mache.vsix
-```
-
-For VS Code connected to a remote machine (Remote-SSH or a tunnel), install the `.vsix` there
-with the server's `code-server --install-extension`, or from the remote window via Extensions →
-⋯ → "Install from VSIX…". Then run "Developer: Reload Window".
-
-Mâché sets two editor settings for LaTeX files itself (wrapping removed text at spaces). The red
-colour for removed text is a workspace setting:
-
-```json
-"workbench.colorCustomizations": { "editorInlayHint.foreground": "#f14c4c", "editorInlayHint.background": "#d73a4a30" },
-"editor.inlayHints.maximumLength": 0
-```
-
 ## Tests
 
 ```bash
@@ -194,5 +197,3 @@ npm run test:vscode    # the extension inside a real VS Code (set VSCODE_BIN if 
 - Text typed directly onto the end of a suggested word, with no space, joins that suggestion.
 - Mâché follows one person's review: co-authors editing at the same time are not supported yet.
 
-Files that mark changes with `\ReviewDelete`/`\ReviewAdd` can be converted with
-`node mache/convert.js path/file.tex`.

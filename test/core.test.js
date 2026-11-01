@@ -150,3 +150,21 @@ test('changes that start at the same place are accepted in order', () => {
     assert.equal(acceptChanges(once, work, rest.regions.flatMap(x => x.changes)), work);
   }
 });
+
+test('the extension package is a zip with its manifest and code', () => {
+  const zlib = require('zlib');
+  const buf = require('../core/vsix').pack();
+  assert.equal(buf.readUInt32LE(0), 0x04034b50, 'starts like a zip');
+  const end = buf.length - 22;
+  assert.equal(buf.readUInt32LE(end), 0x06054b50, 'ends with a zip directory');
+  const names = [];
+  for (let p = buf.readUInt32LE(end + 16); buf.readUInt32LE(p) === 0x02014b50; ) {
+    const n = buf.readUInt16LE(p + 28);
+    names.push(buf.slice(p + 46, p + 46 + n).toString());
+    p += 46 + n;
+  }
+  for (const f of ['extension.vsixmanifest', 'extension/package.json', 'extension/extension.js', 'extension/core/diff.js']) assert.ok(names.includes(f), f);
+  // The first entry inflates back to its original bytes.
+  const nameLen = buf.readUInt16LE(26), size = buf.readUInt32LE(18);
+  assert.match(zlib.inflateRawSync(buf.slice(30 + nameLen, 30 + nameLen + size)).toString(), /<Types/);
+});
