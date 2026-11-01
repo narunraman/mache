@@ -1,0 +1,259 @@
+{
+  "name": "mache",
+  "displayName": "Mâché",
+  "description": "Review an agent's edits to a LaTeX paper: suggestions, comments and history.",
+  "version": "0.1.0",
+  "publisher": "narunraman",
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/narunraman/mache"
+  },
+  "engines": {
+    "vscode": "^1.80.0"
+  },
+  "main": "./extension.js",
+  "activationEvents": [
+    "onLanguage:latex",
+    "onLanguage:tex",
+    "workspaceContains:**/.review/*.tex"
+  ],
+  "contributes": {
+    "commands": [
+      {
+        "command": "mache.accept",
+        "title": "Accept edit at cursor",
+        "category": "Mâché",
+        "icon": "$(check)"
+      },
+      {
+        "command": "mache.undo",
+        "title": "Reject edit at cursor",
+        "category": "Mâché",
+        "icon": "$(close)"
+      },
+      {
+        "command": "mache.acceptAll",
+        "title": "Accept all suggestions in file",
+        "category": "Mâché"
+      },
+      {
+        "command": "mache.undoAll",
+        "title": "Reject all suggestions in file",
+        "category": "Mâché"
+      },
+      {
+        "command": "mache.next",
+        "title": "Next suggestion",
+        "category": "Mâché",
+        "icon": "$(arrow-down)"
+      },
+      {
+        "command": "mache.previous",
+        "title": "Previous suggestion",
+        "category": "Mâché",
+        "icon": "$(arrow-up)"
+      },
+      {
+        "command": "mache.track",
+        "title": "Start reviewing this file (save current text as accepted)",
+        "category": "Mâché"
+      },
+      {
+        "command": "mache.openReview",
+        "title": "Open side-by-side review (old paragraphs above new)",
+        "category": "Mâché",
+        "icon": "$(diff)"
+      },
+      {
+        "command": "mache.toggleReviewMode",
+        "title": "Review mode: on/off (show my own edits as suggestions)",
+        "category": "Mâché"
+      },
+      {
+        "command": "mache.addNote",
+        "title": "Comment on selection",
+        "category": "Mâché",
+        "icon": "$(comment)"
+      },
+      {
+        "command": "mache.commentOn",
+        "title": "Comment on suggestion",
+        "category": "Mâché"
+      },
+      {
+        "command": "mache.showPanel",
+        "title": "Show review panel",
+        "category": "Mâché",
+        "icon": "$(comment-discussion)"
+      },
+      {
+        "command": "mache.acceptSuggestion",
+        "title": "Accept suggestion",
+        "category": "Mâché",
+        "icon": "$(check)"
+      },
+      {
+        "command": "mache.rejectSuggestion",
+        "title": "Reject suggestion",
+        "category": "Mâché",
+        "icon": "$(close)"
+      },
+      {
+        "command": "mache.commentSuggestion",
+        "title": "Comment on suggestion",
+        "category": "Mâché",
+        "icon": "$(comment)"
+      },
+      {
+        "command": "mache.compareSuggestion",
+        "title": "Compare old and new paragraph (opens beside)",
+        "category": "Mâché",
+        "icon": "$(diff)"
+      }
+    ],
+    "keybindings": [
+      {
+        "command": "mache.accept",
+        "key": "alt+y",
+        "when": "editorTextFocus && mache.tracked"
+      },
+      {
+        "command": "mache.undo",
+        "key": "alt+n",
+        "when": "editorTextFocus && mache.tracked"
+      },
+      {
+        "command": "mache.next",
+        "key": "alt+]",
+        "when": "editorTextFocus && mache.tracked"
+      },
+      {
+        "command": "mache.previous",
+        "key": "alt+[",
+        "when": "editorTextFocus && mache.tracked"
+      },
+      {
+        "command": "mache.addNote",
+        "key": "alt+m",
+        "when": "editorTextFocus && mache.tracked"
+      }
+    ],
+    "menus": {
+      "editor/title": [
+        {
+          "command": "mache.acceptSuggestion",
+          "group": "navigation@1",
+          "when": "resourceScheme == file && mache.tracked && mache.atSuggestion"
+        },
+        {
+          "command": "mache.rejectSuggestion",
+          "group": "navigation@2",
+          "when": "resourceScheme == file && mache.tracked && mache.atSuggestion"
+        },
+        {
+          "command": "mache.commentSuggestion",
+          "group": "navigation@3",
+          "when": "resourceScheme == file && mache.tracked && mache.atSuggestion"
+        },
+        {
+          "command": "mache.compareSuggestion",
+          "group": "navigation@4",
+          "when": "resourceScheme == file && mache.tracked && mache.atRewrite"
+        },
+        {
+          "command": "mache.previous",
+          "group": "navigation@5",
+          "when": "resourceScheme == file && mache.tracked"
+        },
+        {
+          "command": "mache.next",
+          "group": "navigation@6",
+          "when": "resourceScheme == file && mache.tracked"
+        },
+        {
+          "command": "mache.showPanel",
+          "group": "navigation@7",
+          "when": "resourceScheme == file && mache.tracked"
+        }
+      ],
+      "editor/context": [
+        {
+          "command": "mache.addNote",
+          "group": "navigation@0",
+          "when": "mache.tracked"
+        }
+      ],
+      "commandPalette": [
+        {
+          "command": "mache.acceptSuggestion",
+          "when": "mache.tracked"
+        },
+        {
+          "command": "mache.rejectSuggestion",
+          "when": "mache.tracked"
+        },
+        {
+          "command": "mache.commentSuggestion",
+          "when": "mache.tracked"
+        },
+        {
+          "command": "mache.compareSuggestion",
+          "when": "mache.tracked"
+        }
+      ]
+    },
+    "viewsContainers": {
+      "activitybar": [
+        {
+          "id": "mache",
+          "title": "Mâché",
+          "icon": "media/review.svg"
+        }
+      ]
+    },
+    "views": {
+      "mache": [
+        {
+          "type": "webview",
+          "id": "mache.panel",
+          "name": "Mâché"
+        }
+      ]
+    },
+    "configuration": {
+      "title": "Mâché",
+      "properties": {
+        "mache.codeLens": {
+          "type": "boolean",
+          "default": true,
+          "description": "Show the suggestion's type and Accept / Reject / Comment / Compare links above each changed paragraph."
+        }
+      }
+    },
+    "configurationDefaults": {
+      "[latex]": {
+        "editor.wordWrapBreakAfterCharacters": " \t})]?|/&.,;¢°′″‰℃、。｡､￠，．：；？！％・･ゝゞヽヾーァィゥェォッャュョヮヵヶぁぃぅぇぉっゃゅょゎゕゖㇰㇱㇲㇳㇴㇵㇶㇷㇸㇹㇺㇻㇼㇽㇾㇿ々〻ｧｨｩｪｫｬｭｮｯｰ”〉》」』】〕）］｝｣ ",
+        "editor.inlayHints.maximumLength": 0
+      }
+    }
+  },
+  "bin": {
+    "mache": "cli.js"
+  },
+  "files": [
+    "cli.js",
+    "core/",
+    "extension.js",
+    "panel.js",
+    "parser.js",
+    "convert.js",
+    "media/",
+    "README.md",
+    "LICENSE"
+  ],
+  "scripts": {
+    "test": "node --test test/core.test.js test/cli.test.js",
+    "test:vscode": "node test/vscode/run.js"
+  }
+}
