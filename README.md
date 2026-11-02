@@ -29,24 +29,18 @@ and full length; `kagaz setup` adds them to a paper's workspace, or add them you
 
 ## The problem
 
-Agents are good at editing prose, and asking one to tighten a section or answer a reviewer is
-easy. Seeing what it actually did is not. In a `.tex` file a paragraph is usually one long line,
-so `git diff` shows you this:
+When writing with AI its hard to know what it has edited. In a `.tex` file a paragraph is usually one long line, so `git diff` shows you this:
 
 ```diff
 - Thompson's lesson applies here as well \citep{thompson1984trusting}. A check that is performed by a tool you trust is only as trustworthy as that tool, and the tools in a typesetting pipeline are numerous, mostly unaudited, and updated without notice. …
 + Thompson's lesson applies to the checks themselves \citep{thompson1984trusting}. A check that is performed by a tool you trust is only as trustworthy as that tool, and the tools in a typesetting pipeline are numerous, mostly unaudited, and updated without notice. …
 ```
 
-Two whole paragraphs, to find that four words changed (and here the paragraph had also moved,
-which a diff shows as one paragraph deleted and an unrelated one added). With code you mostly
-care whether the tests pass; with a paper you care about every sentence, and you need to read
-each change in context, push back on some, and keep the ones you like.
+Two whole paragraphs, to find that four words changed (and here the paragraph had also moved, which a diff shows as one paragraph deleted and an unrelated one added). 
 
 ## What it looks like
 
-Mâché keeps the text you have accepted and shows everything since as suggestions, right in the
-`.tex` file you are editing:
+Mâché keeps the text you have accepted and shows everything since as suggestions, right in the `.tex` file you are editing:
 
 ![An edited paragraph in VS Code with Mâché: removed words in red, added words in green, a moved paragraph, and the review panel](media/screenshots/editor.png)
 
@@ -58,13 +52,11 @@ Mâché keeps the text you have accepted and shows everything since as suggestio
 - **The panel** (the Mâché icon in the activity bar) lists every suggestion and comment in the
   file, with the same buttons.
 
-Comments work like comments in Google Docs. Select text and press `Alt+M`; the text gets a yellow
-underline, and the thread lives in the panel:
+Comments work like comments in Google Docs. Select text and press `Alt+M` or right-click and select to leave a comment; the text gets a yellow underline, and the thread lives in the panel:
 
 ![A comment in Mâché: the commented words underlined in yellow, the author's question and the agent's answer in the panel](media/screenshots/comment.png)
 
-When the agent changes the text because of your comment, its edit appears inside its reply,
-with its own Accept / Reject; **Accept & resolve** takes the edit and closes the conversation.
+When the agent changes the text because of your comment, its edit appears inside its reply, with its own Accept / Reject; **Accept & resolve** takes the edit and closes the conversation.
 
 ## How a round goes
 
@@ -85,14 +77,12 @@ with its own Accept / Reject; **Accept & resolve** takes the edit and closes the
 The PDF always shows the current text, suggestions included, so you can read the draft as it
 would be if you accepted everything.
 
-## Two histories: every step privately, clean commits publicly
+## Working and public histories
 
-Mâché records everything as it happens: each agent edit, each accept and reject (with the agent's
-reason), each comment and reply, and your own edits. That record lives in a private git history
-inside `.review/`, which never leaves your machine.
+Mâché records everything as it happens: each agent edit, each accept and reject (with the agent's reason), each comment and reply, and your own edits. That record lives in a private git history inside `.review/`, which never leaves your machine.
 
 ```text
-your repository (what you push)          private history (.review/, never pushed)
+your repository (what you push)               private history (.review/, never pushed)
 
 ● Draft the paper
 │                                               ● you comment on §4
@@ -111,10 +101,7 @@ your repository (what you push)          private history (.review/, never pushed
 ● Tighten §2  ◀─────────────────────────────────┘
 ```
 
-Your paper's own repository sees none of that until you run `mache commit`. It squashes everything
-since your last commit into **one commit containing only text you accepted**: pending suggestions
-stay in your working files and out of your history. The commit message is drafted for you from the
-round itself, mostly from the agent's own explanations:
+Your paper's own repository does not have to see any of that if you run `mache commit`. It squashes everything since your last commit into **one commit containing only text you accepted**: pending suggestions stay in your working files and out of your history. The commit message is drafted from the round itself, mostly from the agent's own explanations:
 
 ```text
 Revise Introduction, Experiments: 3 accepted, 1 rejected
