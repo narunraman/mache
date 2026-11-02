@@ -18,7 +18,8 @@ const HELP = `mache — suggestions, comments and history for a LaTeX paper
   comment <file>:<line> <text>   start a thread on that line (--quote "<text>" to anchor on exact words)
   explain <file>:<line> <text>   say why you made the suggestion at that line
   status                         every pending suggestion, per file
-  start [files...]               start reviewing files (default: every .tex file in the paper)
+  start [files...]               start reviewing files (default: the main files and what they input)
+  stop <files...>                stop reviewing files (their text stays as it is)
   summary                        the commit message for everything since the last commit
   setup                          install the Mâché extension into this machine's VS Code
   vsix [file]                    write the extension package (default: mache.vsix)
@@ -259,38 +260,26 @@ async function explain(root, opts) {
 
 async function start(root, opts) {
   const list = opts._.length ? opts._.map(f => path.resolve(process.cwd(), f)) : project.candidates(root).map(f => path.join(root, f));
-  const started = project.start(root, list);
-  writeReadme(root);
+  const { started, ignored } = project.startPaper(root, list);
   if (!started.length) { console.log('Nothing new to start; those files are already under review.'); return; }
   await project.record(root, `author: started reviewing ${sg.plural(started.length, 'file')}`, { Action: 'start', Files: started.join(', ') });
   console.log(`Reviewing ${started.join(', ')}.\nAccepted copies are in ${path.relative(process.cwd(), path.join(root, project.REVIEW)) || project.REVIEW}/.`);
-  // .review/ is local state (the accepted text, comments and history; `mache commit` commits
-  // the accepted text itself), so it is kept out of git.
-  const top = project.gitTop(root);
-  if (top) {
-    const ignore = path.join(top, '.gitignore');
-    const entry = path.relative(top, path.join(root, project.REVIEW)).split(path.sep).join('/') + '/';
-    const lines = fs.existsSync(ignore) ? fs.readFileSync(ignore, 'utf8').split('\n') : [];
-    if (!lines.some(l => [entry, '/' + entry, '.review/', '.review'].includes(l.trim()))) {
-      fs.writeFileSync(ignore, lines.join('\n').replace(/\n*$/, lines.length ? '\n' : '') + entry + '\n');
-      console.log(`Added ${entry} to .gitignore.`);
-    }
-  }
+  if (ignored) console.log(`Added ${ignored} to .gitignore.`);
+  console.log('Stop reviewing a file with: mache stop <file>');
 }
 
-// A note in .review/ for whoever (or whatever) finds the folder.
-function writeReadme(root) {
-  const p = path.join(root, project.REVIEW, 'README.md');
-  if (fs.existsSync(p)) return;
-  fs.writeFileSync(p, `# Review state (mache)
-
-This paper is reviewed with mache. Edits to the paper's .tex files show the author as
-suggestions to accept or reject, and comments are threads stored here.
-
-Run \`mache\` anywhere in the paper to see which comments are waiting for a reply and what is
-pending; \`mache help\` lists the commands. Do not edit this folder by hand: it holds the
-author's accepted text, the comment threads and a local history (history.git).
-`);
+async function stop(root, opts) {
+  if (!opts._.length) fail('which files? mache stop <file>...');
+  const files = opts._.map(f => path.resolve(process.cwd(), f));
+  const open = files.reduce((n, f) => {
+    const p = project.paths(root, f);
+    return n + (notes.load(p.notesPath) || []).filter(x => x.status !== 'resolved').length;
+  }, 0);
+  const stopped = project.stop(root, files);
+  if (!stopped.length) { console.log('None of those files is under review.'); return; }
+  await project.record(root, `author: stopped reviewing ${sg.plural(stopped.length, 'file')}`, { Action: 'stop', Files: stopped.join(', ') });
+  console.log(`Stopped reviewing ${stopped.join(', ')}. The files are unchanged; their pending suggestions are no longer shown` +
+    (open ? ` and ${sg.plural(open, 'open comment')} ${open === 1 ? 'is' : 'are'} closed` : '') + ' (the private history keeps everything).');
 }
 
 // A commit message from the steps since the last commit.
@@ -378,7 +367,7 @@ async function main() {
     fail('no .review/ folder here or above; start with: mache start');
   }
   if (!cmd) { overview(root); return; }
-  const commands = { status, comments: listComments, reply, comment, explain, start, summary, commit };
+  const commands = { status, comments: listComments, reply, comment, explain, start, stop, summary, commit };
   if (!commands[cmd]) fail(`unknown command "${cmd}"\n\n${HELP}`);
   await commands[cmd](root, opts);
 }

@@ -300,9 +300,18 @@ function updateStatus() {
     modeStatus.show();
   } else modeStatus.hide();
   if (!st) {
-    if (ed && /\.tex$/.test(ed.document.fileName)) {
+    const tex = ed && /\.tex$/.test(ed.document.fileName) && ed.document.uri.scheme === 'file';
+    const paperReviewed = tex && !!project.reviewRoot(ed.document.uri.fsPath);
+    vscode.commands.executeCommand('setContext', 'mache.paperReviewed', paperReviewed);
+    if (tex && !paperReviewed) {
+      status.text = '$(play) Mâché: start reviewing';
+      status.tooltip = 'This paper is not under review yet. Click to start: its current text becomes the accepted text, and comments (Alt+M) and suggestions appear.';
+      status.command = 'mache.startPaper';
+      status.show();
+      offerStart(ed.document.uri.fsPath);
+    } else if (tex) {
       status.text = '$(circle-slash) not reviewed';
-      status.tooltip = 'No .review/ baseline for this file. Run "Mâché: Start reviewing this file" to begin.';
+      status.tooltip = 'The paper is under review, but not this file. Click to review this file too.';
       status.command = 'mache.track';
       status.show();
     } else status.hide();
@@ -507,6 +516,43 @@ function jump(dir) {
   const p = ed.document.positionAt(s);
   ed.selection = new vscode.Selection(p, p);
   ed.revealRange(new vscode.Range(p, p), vscode.TextEditorRevealType.InCenterIfOutsideViewport);
+}
+
+// Start reviewing the whole paper the active file belongs to: its main files and what they input.
+async function startPaper() {
+  const ed = vscode.window.activeTextEditor;
+  if (!ed || !/\.tex$/.test(ed.document.fileName)) {
+    vscode.window.showInformationMessage('Open a .tex file of the paper first.');
+    return;
+  }
+  await ed.document.save();
+  const file = ed.document.uri.fsPath;
+  const root = project.newRoot(file);
+  const files = [...new Set([...project.candidates(root).map(f => path.join(root, f)), file])];
+  const { started, ignored } = project.startPaper(root, files);
+  if (started.length) {
+    project.record(root, `author: started reviewing ${plural(started.length, 'file')}`, { Action: 'start', Files: started.join(', ') })
+      .catch(e => log.appendLine(`history: ${e.message}`));
+  }
+  refreshAll();
+  vscode.window.showInformationMessage(
+    `Mâché is reviewing ${plural(started.length, 'file')} in ${path.basename(root)}${ignored ? ` (and added ${ignored} to .gitignore)` : ''}. ` +
+    'Select text and press Alt+M to comment; ask your agent to run `mache` in the paper.');
+}
+
+// Once per paper and session, a prompt to start, unless the author said not to ask again.
+const offered = new Set();
+let extContext; // set in activate()
+function offerStart(file) {
+  const root = project.newRoot(file);
+  const never = extContext && extContext.workspaceState.get('mache.neverOffer', []);
+  if (offered.has(root) || (never && never.includes(root)) || process.env.MACHE_TEST) return;
+  offered.add(root);
+  vscode.window.showInformationMessage(`Mâché is not reviewing ${path.basename(root)} yet.`, 'Start reviewing', 'Not now', "Don't ask again")
+    .then(choice => {
+      if (choice === 'Start reviewing') startPaper();
+      else if (choice === "Don't ask again") extContext.workspaceState.update('mache.neverOffer', [...(never || []), root]);
+    });
 }
 
 async function track() {
@@ -995,6 +1041,7 @@ function onBaselineFileChange(uri) {
 }
 
 function activate(context) {
+  extContext = context;
   log.appendLine('Mâché active');
   reviewMode = context.workspaceState.get('mache.reviewMode', false);
   const toggleReviewMode = () => {
@@ -1035,6 +1082,7 @@ function activate(context) {
     vscode.commands.registerCommand('mache.next', () => jump(1)),
     vscode.commands.registerCommand('mache.previous', () => jump(-1)),
     vscode.commands.registerCommand('mache.track', track),
+    vscode.commands.registerCommand('mache.startPaper', startPaper),
     vscode.workspace.onDidChangeTextDocument(onChange),
     vscode.workspace.onDidSaveTextDocument(onSave),
     vscode.workspace.onDidCloseTextDocument(doc => states.delete(doc.uri.toString())),

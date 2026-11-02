@@ -94,25 +94,108 @@ function start(root, files) {
   return started;
 }
 
-// .tex files a review would start with by default: those git tracks under the root, or
-// else every .tex file outside build/, .review/ and hidden folders.
+// Stop reviewing files: their accepted copies and comment threads leave .review/ (the
+// private history keeps both). The working files are untouched.
+function stop(root, files) {
+  const stopped = [];
+  for (const f of files) {
+    const p = paths(root, f);
+    if (!fs.existsSync(p.basePath)) continue;
+    fs.rmSync(p.basePath);
+    fs.rmSync(p.notesPath, { force: true });
+    stopped.push(p.rel);
+  }
+  return stopped;
+}
+
+// Folders that hold no part of the paper: hidden ones (.archive/), build output, old drafts.
+const SKIP = name => name.startsWith('.') || ['build', 'node_modules', 'archive'].includes(name);
+const skipped = rel => rel.split('/').slice(0, -1).some(SKIP);
+
+// A main file and every .tex file it reads through \input, \include or \subfile.
+function withInputs(root, rel, seen = new Set()) {
+  const file = path.join(root, rel);
+  if (seen.has(rel) || !fs.existsSync(file)) return seen;
+  seen.add(rel);
+  const text = fs.readFileSync(file, 'utf8').replace(/(^|[^\\])%.*$/gm, '$1');
+  for (const m of text.matchAll(/\\(?:input|include|subfile)\s*\{([^}]+)\}/g)) {
+    const name = m[1].trim().endsWith('.tex') ? m[1].trim() : `${m[1].trim()}.tex`;
+    for (const base of [path.dirname(file), root]) {
+      const r = path.relative(root, path.resolve(base, name)).split(path.sep).join('/');
+      if (!r.startsWith('..') && fs.existsSync(path.join(root, r))) { withInputs(root, r, seen); break; }
+    }
+  }
+  return seen;
+}
+
+// .tex files a review starts with by default: the paper's main files and what they input.
+// The main files are kagaz.toml's, if there is one; else those with \begin{document} among the
+// .tex files git tracks (or, outside git, all of them), leaving out hidden, build and archive
+// folders. If none has \begin{document}, every .tex file that is left.
 function candidates(root) {
+  const toml = path.join(root, 'kagaz.toml');
+  if (fs.existsSync(toml)) {
+    const seen = new Set();
+    for (const m of fs.readFileSync(toml, 'utf8').matchAll(/^\s*driver\s*=\s*"([^"]+)"/gm)) withInputs(root, m[1], seen);
+    if (seen.size) return [...seen].filter(f => !skipped(f)).sort();
+  }
+  let files = [];
   try {
     const out = execFileSync('git', ['-C', root, 'ls-files', '--', '*.tex'], { encoding: 'utf8', stdio: ['ignore', 'pipe', 'ignore'] });
-    const files = out.split('\n').filter(Boolean);
-    if (files.length) return files;
+    files = out.split('\n').filter(Boolean);
   } catch { /* not a git repository */ }
-  const found = [];
-  const walk = (dir, rel) => {
-    for (const e of fs.readdirSync(dir, { withFileTypes: true })) {
-      if (e.name.startsWith('.') || e.name === 'build' || e.name === 'node_modules') continue;
-      const r = rel ? `${rel}/${e.name}` : e.name;
-      if (e.isDirectory()) walk(path.join(dir, e.name), r);
-      else if (e.name.endsWith('.tex')) found.push(r);
-    }
-  };
-  walk(root, '');
-  return found.sort();
+  if (!files.length) {
+    const walk = (dir, rel) => {
+      for (const e of fs.readdirSync(dir, { withFileTypes: true })) {
+        if (SKIP(e.name)) continue;
+        const r = rel ? `${rel}/${e.name}` : e.name;
+        if (e.isDirectory()) walk(path.join(dir, e.name), r);
+        else if (e.name.endsWith('.tex')) files.push(r);
+      }
+    };
+    walk(root, '');
+  }
+  files = files.filter(f => !skipped(f));
+  const mains = files.filter(f => /^[^%\n]*\\begin\{document\}/m.test(fs.readFileSync(path.join(root, f), 'utf8')));
+  if (!mains.length) return files.sort();
+  const seen = new Set();
+  for (const m of mains) withInputs(root, m, seen);
+  return [...seen].filter(f => !skipped(f)).sort();
+}
+
+// A note in .review/ for whoever (or whatever) finds the folder.
+function writeReadme(root) {
+  const p = path.join(root, REVIEW, 'README.md');
+  if (fs.existsSync(p)) return;
+  fs.writeFileSync(p, `# Review state (mache)
+
+This paper is reviewed with mache. Edits to the paper's .tex files show the author as
+suggestions to accept or reject, and comments are threads stored here.
+
+Run \`mache\` anywhere in the paper to see which comments are waiting for a reply and what is
+pending; \`mache help\` lists the commands. Do not edit this folder by hand: it holds the
+author's accepted text, the comment threads and a local history (history.git).
+`);
+}
+
+// .review/ is local state (the accepted text, comments and history; \`mache commit\` commits
+// the accepted text itself), so it is kept out of git. The entry added, if one was.
+function ignoreReview(root) {
+  const top = gitTop(root);
+  if (!top) return undefined;
+  const ignore = path.join(top, '.gitignore');
+  const entry = path.relative(top, path.join(root, REVIEW)).split(path.sep).join('/') + '/';
+  const lines = fs.existsSync(ignore) ? fs.readFileSync(ignore, 'utf8').split('\n') : [];
+  if (lines.some(l => [entry, '/' + entry, '.review/', '.review'].includes(l.trim()))) return undefined;
+  fs.writeFileSync(ignore, lines.join('\n').replace(/\n*$/, lines.length ? '\n' : '') + entry + '\n');
+  return entry;
+}
+
+// Start reviewing a paper (the command line's \`mache start\` and the extension's command).
+function startPaper(root, files) {
+  const started = start(root, files);
+  if (isDir(path.join(root, REVIEW))) writeReadme(root);
+  return { started, ignored: started.length ? ignoreReview(root) : undefined };
 }
 
 // ---------- local history ----------
@@ -187,4 +270,4 @@ async function markSquashed(root) {
   await git(root, ['tag', '-f', SQUASHED, 'HEAD']);
 }
 
-module.exports = { REVIEW, reviewRoot, newRoot, gitTop, paths, locate, tracked, start, candidates, record, steps, markSquashed };
+module.exports = { REVIEW, reviewRoot, newRoot, gitTop, paths, locate, tracked, start, stop, startPaper, candidates, record, steps, markSquashed };

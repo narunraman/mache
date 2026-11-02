@@ -127,6 +127,19 @@ const tests = {
     await sleep(400);
     assert.equal(JSON.parse(fs.readFileSync(notesFile, 'utf8')).notes[0].status, 'resolved');
   },
+  async 'a paper not under review can be started from the editor'() {
+    const other = fs.mkdtempSync(path.join(require('os').tmpdir(), 'mache-start-'));
+    fs.writeFileSync(path.join(other, 'main.tex'), '\\documentclass{article}\n\\begin{document}\n\\input{intro}\n\\end{document}\n');
+    fs.writeFileSync(path.join(other, 'intro.tex'), P(1) + '\n');
+    fs.writeFileSync(path.join(other, 'notes.tex'), 'Not part of the paper.\n');
+    await vscode.commands.executeCommand('workbench.action.closeAllEditors');
+    await vscode.window.showTextDocument(await vscode.workspace.openTextDocument(path.join(other, 'intro.tex')));
+    await sleep(800);
+    await vscode.commands.executeCommand('mache.startPaper');
+    await sleep(800);
+    assert.deepEqual(fs.readdirSync(path.join(other, '.review')).filter(f => f.endsWith('.tex')).sort(), ['intro.tex', 'main.tex']);
+    fs.rmSync(other, { recursive: true, force: true });
+  },
 };
 
 exports.run = async function () {

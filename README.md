@@ -9,9 +9,16 @@ Mâché lets you write a LaTeX paper with an AI agent the way you would with a c
 Install **Mâché** from the [VS Code Marketplace](https://marketplace.visualstudio.com/items?itemName=narunraman.mache) (search for "Mâché" in VS Code's Extensions view), and the `mache` command, which needs [Node.js](https://nodejs.org):
 
 ```bash
-npm install -g github:narunraman/mache
+npm install -g --allow-git=all github:narunraman/mache
 mache setup    # optional: installs the extension into every VS Code on this machine
 ```
+
+npm 12 refuses to install from GitHub unless told to (`--allow-git=all`; older npm ignores the
+flag). Don't run `npm install -g mache`: that name on npm is an unrelated package.
+
+If you edit over Remote-SSH, the extension has to be installed on the remote machine, where the
+files are: choose "Install in SSH: <host>" in the Extensions view, or run `mache setup` there. A
+copy installed only on your laptop does nothing for files opened over SSH.
 
 `mache setup` installs the extension from the Marketplace into the `code` command's VS Code and, if you connect to this machine with Remote-SSH or a tunnel, into the VS Code server there too. Where the Marketplace isn't available (offline, or Cursor and VSCodium) it installs a package built from your copy instead; `mache vsix` writes that package to install by hand.
 
@@ -24,7 +31,8 @@ Two editor settings make removed text red and show it at full length. kagaz adds
 
 ## Review a round
 
-Start reviewing a paper once, from anywhere inside it:
+Start reviewing a paper once, from anywhere inside it (or click "Mâché: start reviewing" in the
+status bar of one of its `.tex` files; until a paper is under review, that is all Mâché shows):
 
 ```bash
 mache start
@@ -85,7 +93,8 @@ Run `mache` anywhere inside a paper; `mache help` lists everything.
 | `mache comment <file>:<line> "…"` | start a thread on a line (`--quote "…"` to anchor on exact words) |
 | `mache explain <file>:<line> "…"` | say why you made the edit at that line |
 | `mache status` | every pending suggestion, per file (`--json`) |
-| `mache start [files…]` | start reviewing files (default: every `.tex` file in the paper) |
+| `mache start [files…]` | start reviewing files (default: the paper's main files and what they `\input`, skipping hidden, `build/` and `archive/` folders) |
+| `mache stop <files…>` | stop reviewing files; the files are untouched, their suggestions and comments leave `.review/` (the private history keeps them) |
 | `mache summary` | the commit message for everything since the last commit |
 | `mache commit` | commit the accepted text with that message (`--no-edit` skips the editor) |
 | `mache setup` | install the Mâché extension into this machine's VS Code |

@@ -2,7 +2,7 @@
   "name": "mache",
   "displayName": "Mâché",
   "description": "Review an agent's edits to a LaTeX paper: suggestions, comments and history.",
-  "version": "0.1.4",
+  "version": "0.1.5",
   "publisher": "narunraman",
   "license": "MIT",
   "repository": {
@@ -53,6 +53,11 @@
         "title": "Previous suggestion",
         "category": "Mâché",
         "icon": "$(arrow-up)"
+      },
+      {
+        "command": "mache.startPaper",
+        "title": "Start reviewing this paper",
+        "category": "Mâché"
       },
       {
         "command": "mache.track",
@@ -182,6 +187,11 @@
           "command": "mache.addNote",
           "group": "navigation@0",
           "when": "mache.tracked"
+        },
+        {
+          "command": "mache.startPaper",
+          "group": "navigation@0",
+          "when": "resourceExtname == .tex && !mache.tracked && !mache.paperReviewed"
         }
       ],
       "commandPalette": [

@@ -83,3 +83,23 @@ test('clear errors for a bad line or an unknown comment', t => {
   assert.throws(() => run('explain', 'intro.tex:3', 'why'), /no suggestion at paper\/intro.tex:3/);
   assert.throws(() => run('reply', 'n9', 'hello'), /no comment n9/);
 });
+
+test('start takes the main files and what they input; stop lets a file go', t => {
+  const { root, run } = paper(t);
+  fs.writeFileSync(path.join(root, 'kagaz.toml'), '[project]\nname = "t"\n\n[targets.arxiv]\nkind = "latex"\ndriver = "main.tex"\noutput = "p.pdf"\n');
+  fs.writeFileSync(path.join(root, 'main.tex'), '\\documentclass{article}\n\\begin{document}\n\\input{paper/intro}\n% \\input{paper/old}\n\\end{document}\n');
+  for (const [dir, name] of [['.archive', 'draft.tex'], ['build', 'gen.tex'], ['paper', 'old.tex']]) {
+    fs.mkdirSync(path.join(root, dir), { recursive: true });
+    fs.writeFileSync(path.join(root, dir, name), 'Not part of the paper.\n');
+  }
+  execFileSync('git', ['-C', root, ...GIT, 'add', '-A', '-f']);
+  execFileSync('git', ['-C', root, ...GIT, 'commit', '-qm', 'more']);
+  assert.match(run('start'), /Reviewing main\.tex, paper\/intro\.tex\./);
+  assert.deepEqual(fs.readdirSync(path.join(root, '.review', 'paper')), ['intro.tex']);
+  run('comment', 'intro.tex:3', 'Which documents?');
+  assert.match(run('stop', 'intro.tex'), /Stopped reviewing paper\/intro\.tex\..*1 open comment is closed/s);
+  assert.ok(!fs.existsSync(path.join(root, '.review', 'paper', 'intro.tex')));
+  assert.ok(!fs.existsSync(path.join(root, '.review', 'paper', 'intro.notes.json')));
+  assert.match(fs.readFileSync(path.join(root, 'paper', 'intro.tex'), 'utf8'), /one in five/, 'the file itself is untouched');
+  assert.match(run('stop', 'intro.tex'), /None of those files is under review/);
+});
