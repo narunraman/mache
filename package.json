@@ -2,7 +2,7 @@
   "name": "mache",
   "displayName": "Mâché",
   "description": "Review an agent's edits to a LaTeX paper: suggestions, comments and history.",
-  "version": "0.1.2",
+  "version": "0.1.3",
   "publisher": "narunraman",
   "license": "MIT",
   "repository": {
@@ -246,7 +246,7 @@
     "core/",
     "extension.js",
     "panel.js",
-    "media/",
+    "media/review.svg",
     "README.md",
     "LICENSE"
   ],
