@@ -33,6 +33,11 @@ test('a round: comment, edit, reply with the change, explain, status, commit', t
   assert.match(run('start'), /Reviewing paper\/intro.tex/);
   assert.ok(fs.existsSync(path.join(root, '.review', 'README.md')));
   assert.ok(fs.existsSync(path.join(root, '.review', 'paper', 'intro.tex')));
+  assert.match(fs.readFileSync(path.join(root, '.gitignore'), 'utf8'), /^\.review\/$/m, '.review/ is kept out of git');
+  const recorded = execFileSync('git', ['ls-tree', '-r', '--name-only', 'HEAD'],
+    { encoding: 'utf8', env: { ...process.env, GIT_DIR: path.join(root, '.review', 'history.git'), GIT_WORK_TREE: root } });
+  assert.match(recorded, /\.review\/paper\/intro\.tex/, 'the private history records the accepted text');
+  assert.doesNotMatch(recorded, /history\.git/, 'but not itself');
 
   // The author comments; it is waiting on the agent.
   assert.match(run('comment', 'intro.tex:3', '--quote', 'Roughly one in five', '--as', 'user', 'The exact number?'), /Started paper\/intro.tex#n1/);

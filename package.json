@@ -2,7 +2,7 @@
   "name": "mache",
   "displayName": "Mâché",
   "description": "Review an agent's edits to a LaTeX paper: suggestions, comments and history.",
-  "version": "0.1.1",
+  "version": "0.1.2",
   "publisher": "narunraman",
   "license": "MIT",
   "repository": {
@@ -254,5 +254,23 @@
     "test": "node --test test/core.test.js test/cli.test.js",
     "test:vscode": "node test/vscode/run.js",
     "package": "node cli.js vsix"
-  }
+  },
+  "homepage": "https://github.com/narunraman/mache#readme",
+  "bugs": {
+    "url": "https://github.com/narunraman/mache/issues"
+  },
+  "categories": [
+    "Other"
+  ],
+  "keywords": [
+    "latex",
+    "tex",
+    "review",
+    "track changes",
+    "suggestions",
+    "comments",
+    "ai",
+    "agent",
+    "writing"
+  ]
 }

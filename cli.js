@@ -264,11 +264,17 @@ async function start(root, opts) {
   if (!started.length) { console.log('Nothing new to start; those files are already under review.'); return; }
   await project.record(root, `author: started reviewing ${sg.plural(started.length, 'file')}`, { Action: 'start', Files: started.join(', ') });
   console.log(`Reviewing ${started.join(', ')}.\nAccepted copies are in ${path.relative(process.cwd(), path.join(root, project.REVIEW)) || project.REVIEW}/.`);
-  // .review/ is local state (the accepted text, comments and history): keep it out of the repo.
-  try {
-    execFileSync('git', ['-C', root, 'check-ignore', '-q', project.REVIEW], { stdio: 'ignore' });
-  } catch (e) {
-    if (e.status === 1) console.log(`Tip: add "${project.REVIEW}/" to .gitignore; it is local review state, and \`review commit\` commits the accepted text itself.`);
+  // .review/ is local state (the accepted text, comments and history; `mache commit` commits
+  // the accepted text itself), so it is kept out of git.
+  const top = project.gitTop(root);
+  if (top) {
+    const ignore = path.join(top, '.gitignore');
+    const entry = path.relative(top, path.join(root, project.REVIEW)).split(path.sep).join('/') + '/';
+    const lines = fs.existsSync(ignore) ? fs.readFileSync(ignore, 'utf8').split('\n') : [];
+    if (!lines.some(l => [entry, '/' + entry, '.review/', '.review'].includes(l.trim()))) {
+      fs.writeFileSync(ignore, lines.join('\n').replace(/\n*$/, lines.length ? '\n' : '') + entry + '\n');
+      console.log(`Added ${entry} to .gitignore.`);
+    }
   }
 }
 

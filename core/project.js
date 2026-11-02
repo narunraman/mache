@@ -154,7 +154,9 @@ function record(root, title, fields = {}) {
   const step = async () => {
     await ensureHistory(root);
     const files = tracked(root).filter(rel => fs.existsSync(path.join(root, rel)));
-    await git(root, ['add', '-A', '--', REVIEW, ...files]);
+    // -f: the paper's own .gitignore excludes .review/, which this history must still record.
+    // (but never its own storage, which -f would otherwise take too).
+    await git(root, ['add', '-A', '-f', '--', REVIEW, ...files, `:(exclude)${REVIEW}/${HISTORY}`]);
     const body = Object.entries(fields).filter(([, v]) => v !== undefined && v !== '')
       .map(([k, v]) => `${k}: ${String(v).replace(/\s*\n\s*/g, ' ')}`).join('\n');
     await git(root, ['commit', '-q', '--allow-empty', '-m', body ? `${title}\n\n${body}` : title]);
