@@ -6,14 +6,14 @@ Mâché lets you write a LaTeX paper with an AI agent the way you would with a c
 
 ## Install
 
-You need [Node.js](https://nodejs.org) and VS Code.
+Install **Mâché** from the [VS Code Marketplace](https://marketplace.visualstudio.com/items?itemName=narunraman.mache) (search for "Mâché" in VS Code's Extensions view), and the `mache` command, which needs [Node.js](https://nodejs.org):
 
 ```bash
-npm install -g github:narunraman/mache   # the mache command
-mache setup                              # the Mâché extension, in every VS Code on this machine
+npm install -g github:narunraman/mache
+mache setup    # optional: installs the extension into every VS Code on this machine
 ```
 
-`mache setup` finds the `code` command and, if you connect to this machine with Remote-SSH or a tunnel, the VS Code server there too; reload VS Code afterwards. `mache vsix` writes the extension as `mache.vsix`, to install by hand (Extensions → ⋯ → "Install from VSIX…").
+`mache setup` installs the extension from the Marketplace into the `code` command's VS Code and, if you connect to this machine with Remote-SSH or a tunnel, into the VS Code server there too. Where the Marketplace isn't available (offline, or Cursor and VSCodium) it installs a package built from your copy instead; `mache vsix` writes that package to install by hand.
 
 Two editor settings make removed text red and show it at full length. kagaz adds them to a paper's workspace; otherwise add them yourself:
 

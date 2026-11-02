@@ -104,19 +104,30 @@ function vscodes() {
   return found;
 }
 
+// Install from the Marketplace, which keeps the extension updated; where that fails (offline,
+// or an editor such as Cursor that cannot use Microsoft's Marketplace), install a package built
+// from these files instead.
+const MARKETPLACE_ID = 'narunraman.mache';
+
 function install() {
   const targets = vscodes();
   if (!targets.length) return { installed: [], failed: [], none: true };
-  const file = path.join(os.tmpdir(), `mache-${process.pid}.vsix`);
-  fs.writeFileSync(file, pack());
   const installed = [], failed = [];
+  let file;
   for (const t of targets) {
+    const run = what => execFileSync(t.cli, ['--install-extension', what, '--force'], { stdio: 'ignore', timeout: 180000 });
     try {
-      execFileSync(t.cli, ['--install-extension', file, '--force'], { stdio: 'ignore', timeout: 120000 });
-      installed.push(t.name);
+      run(MARKETPLACE_ID);
+      installed.push(`${t.name} (from the Marketplace)`);
+      continue;
+    } catch { /* fall back to a local package */ }
+    try {
+      if (!file) { file = path.join(os.tmpdir(), `mache-${process.pid}.vsix`); fs.writeFileSync(file, pack()); }
+      run(file);
+      installed.push(`${t.name} (from this copy)`);
     } catch { failed.push(t.name); }
   }
-  fs.rmSync(file, { force: true });
+  if (file) fs.rmSync(file, { force: true });
   return { installed, failed };
 }
 
