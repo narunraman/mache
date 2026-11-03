@@ -11,6 +11,7 @@ const path = require('path');
 const { computeRegions, acceptChanges, workToBase } = require('./core/diff');
 const notes = require('./core/notes');
 const project = require('./core/project');
+const setup = require('./core/setup');
 const { pending, startOf, isRewrite, removedText, wordCount, plural, describe, sectionAt, placeNotes, whyOf } = require('./core/suggestions');
 const { ReviewPanel } = require('./panel');
 
@@ -538,6 +539,54 @@ async function startPaper() {
   vscode.window.showInformationMessage(
     `Mâché is reviewing ${plural(started.length, 'file')} in ${path.basename(root)}${ignored ? ` (and added ${ignored} to .gitignore)` : ''}. ` +
     'Select text and press Alt+M to comment; ask your agent to run `mache` in the paper.');
+  await finishSetup(root, { quiet: true });
+}
+
+// What an agent needs to take part, beyond the extension: the mache command, a note telling it
+// about the review, and red for removed text. Offered as a checklist of what is missing.
+async function finishSetup(root, { quiet } = {}) {
+  if (!root) {
+    const ed = vscode.window.activeTextEditor;
+    root = ed && ed.document.uri.scheme === 'file' && project.reviewRoot(ed.document.uri.fsPath);
+    if (!root) { vscode.window.showInformationMessage('Open a .tex file of a paper under review first.'); return; }
+  }
+  const steps = [];
+  if (!setup.hasCommand()) {
+    steps.push({ id: 'command', label: 'Put the mache command on the PATH', picked: true,
+      detail: `So agents can answer comments, explain edits and raise their own. Writes ${setup.launcherPath()}.` });
+  }
+  if (!setup.hasNote(root)) {
+    steps.push({ id: 'note', label: `Tell agents about the review in ${path.basename(setup.noteFile(root))}`, picked: true,
+      detail: 'A short section saying the paper is reviewed with Mâché and to run mache.' });
+  }
+  const workbench = vscode.workspace.getConfiguration('workbench');
+  if (vscode.workspace.workspaceFolders && setup.withColors(workbench.get('colorCustomizations'))) {
+    steps.push({ id: 'colors', label: 'Show removed text in red', picked: true,
+      detail: "Adds two colour settings to this workspace's .vscode/settings.json." });
+  }
+  if (!steps.length) {
+    if (!quiet) vscode.window.showInformationMessage('Mâché is fully set up for this paper.');
+    return;
+  }
+  const chosen = process.env.MACHE_TEST ? steps : await vscode.window.showQuickPick(steps, {
+    canPickMany: true, title: 'Finish setting up Mâché',
+    placeHolder: 'What an agent needs to take part in the review. Uncheck anything you do not want.' });
+  if (!chosen || !chosen.length) return;
+  const done = [];
+  for (const s of chosen) {
+    if (s.id === 'command') {
+      const r = setup.installLauncher(extContext.extensionPath, process.execPath);
+      done.push(r.ok ? `the mache command (${r.path}${r.onPath ? '' : '; open a new terminal if a shell cannot find it'})` : `not the mache command: ${r.why}`);
+    } else if (s.id === 'note') {
+      const r = setup.addNote(root);
+      done.push(`a note for agents in ${path.relative(root, r.file)}`);
+    } else if (s.id === 'colors') {
+      const current = workbench.inspect('colorCustomizations').workspaceValue;
+      await workbench.update('colorCustomizations', setup.withColors(current) || current, vscode.ConfigurationTarget.Workspace);
+      done.push('red for removed text');
+    }
+  }
+  vscode.window.showInformationMessage(`Mâché added ${done.join('; ')}.`);
 }
 
 // Once per paper and session, a prompt to start, unless the author said not to ask again.
@@ -1051,6 +1100,9 @@ function onBaselineFileChange(uri) {
 function activate(context) {
   extContext = context;
   log.appendLine('Mâché active');
+  // A mache launcher written earlier points at this copy of the extension (it moves on updates).
+  try { if (setup.refreshLauncher(context.extensionPath, process.execPath)) log.appendLine(`updated ${setup.launcherPath()}`); }
+  catch (err) { log.appendLine(`launcher: ${err.message}`); }
   reviewMode = context.workspaceState.get('mache.reviewMode', false);
   const toggleReviewMode = () => {
     reviewMode = !reviewMode;
@@ -1091,6 +1143,7 @@ function activate(context) {
     vscode.commands.registerCommand('mache.previous', () => jump(-1)),
     vscode.commands.registerCommand('mache.track', track),
     vscode.commands.registerCommand('mache.startPaper', startPaper),
+    vscode.commands.registerCommand('mache.finishSetup', () => finishSetup()),
     vscode.workspace.onDidChangeTextDocument(onChange),
     vscode.workspace.onDidSaveTextDocument(onSave),
     vscode.workspace.onDidCloseTextDocument(doc => states.delete(doc.uri.toString())),

@@ -2,7 +2,7 @@
   "name": "mache",
   "displayName": "Mâché",
   "description": "Review an agent's edits to a LaTeX paper: suggestions, comments and history.",
-  "version": "0.1.7",
+  "version": "0.1.8",
   "publisher": "narunraman",
   "license": "MIT",
   "repository": {
@@ -57,6 +57,11 @@
       {
         "command": "mache.startPaper",
         "title": "Start reviewing this paper",
+        "category": "Mâché"
+      },
+      {
+        "command": "mache.finishSetup",
+        "title": "Finish setting up this paper (the mache command, a note for agents, red deletions)",
         "category": "Mâché"
       },
       {
@@ -261,7 +266,7 @@
     "LICENSE"
   ],
   "scripts": {
-    "test": "node --test test/core.test.js test/cli.test.js",
+    "test": "node --test test/core.test.js test/cli.test.js test/setup.test.js",
     "test:vscode": "node test/vscode/run.js",
     "package": "node cli.js vsix",
     "package:marketplace": "npx -y @vscode/vsce@3 package"

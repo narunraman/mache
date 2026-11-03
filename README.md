@@ -6,7 +6,29 @@ Mâché lets you write a LaTeX paper with an AI agent the way you would with a c
 
 ## Install
 
-Install **Mâché** from the [VS Code Marketplace](https://marketplace.visualstudio.com/items?itemName=narunraman.mache) (search for "Mâché" in VS Code's Extensions view), and the `mache` command, which needs [Node.js](https://nodejs.org):
+Install **Mâché** from the [VS Code Marketplace](https://marketplace.visualstudio.com/items?itemName=narunraman.mache) (search for "Mâché" in VS Code's Extensions view). That is all you need.
+
+Open a `.tex` file of your paper and click **Mâché: start reviewing** in the status bar. Mâché then
+offers to finish setting up, as a checklist you can uncheck:
+
+- **the `mache` command**, which your agent runs to answer comments, explain its edits and raise
+  its own. It is a small launcher in `~/.local/bin` for the copy that ships inside the extension,
+  rewritten whenever the extension updates. It runs on the paper's Node.js if a shell has one,
+  else on the one inside VS Code;
+- **a note for agents** in the paper's `AGENTS.md` (or `CLAUDE.md`, if that is what it has), saying
+  the paper is reviewed with Mâché and to run `mache`;
+- **red for removed text**, two colour settings in the workspace's `.vscode/settings.json`.
+
+Run **Mâché: Finish setting up this paper** from the Command Palette to see the checklist again.
+
+If you edit over Remote-SSH, install the extension on the remote machine, where the files are:
+"Install in SSH: <host>" in the Extensions view. A copy installed only on your laptop does nothing
+for files opened over SSH.
+
+### The command without the extension
+
+To install the `mache` command on a machine without VS Code (say, where an agent runs), use npm;
+it needs [Node.js](https://nodejs.org):
 
 ```bash
 npm install -g --allow-git=all github:narunraman/mache
@@ -16,18 +38,7 @@ mache setup    # optional: installs the extension into every VS Code on this mac
 npm 12 refuses to install from GitHub unless told to (`--allow-git=all`; older npm ignores the
 flag). Don't run `npm install -g mache`: that name on npm is an unrelated package.
 
-If you edit over Remote-SSH, the extension has to be installed on the remote machine, where the
-files are: choose "Install in SSH: <host>" in the Extensions view, or run `mache setup` there. A
-copy installed only on your laptop does nothing for files opened over SSH.
-
 `mache setup` installs the extension from the Marketplace into the `code` command's VS Code and, if you connect to this machine with Remote-SSH or a tunnel, into the VS Code server there too. Where the Marketplace isn't available (offline, or Cursor and VSCodium) it installs a package built from your copy instead; `mache vsix` writes that package to install by hand (Extensions → ⋯ → Install from VSIX…). It is not a Marketplace package: see Releasing below.
-
-Two editor settings make removed text red and show it at full length. kagaz adds them to a paper's workspace; otherwise add them yourself:
-
-```json
-"workbench.colorCustomizations": { "editorInlayHint.foreground": "#f14c4c", "editorInlayHint.background": "#d73a4a30" },
-"editor.inlayHints.maximumLength": 0
-```
 
 ## Review a round
 

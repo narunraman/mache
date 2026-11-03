@@ -153,6 +153,14 @@ const tests = {
     await vscode.commands.executeCommand('mache.startPaper');
     await sleep(800);
     assert.deepEqual(fs.readdirSync(path.join(other, '.review')).filter(f => f.endsWith('.tex')).sort(), ['intro.tex', 'main.tex']);
+    // Starting also finishes the setup (in tests, every step without asking).
+    const launcher = path.join(process.env.MACHE_BIN_DIR, 'mache');
+    assert.ok(fs.existsSync(launcher), 'the mache command');
+    const help = require('child_process').spawnSync('sh', [launcher, 'help'], { encoding: 'utf8' });
+    assert.match(help.stdout, /mache — suggestions, comments and history/, 'the launcher runs the extension\'s cli.js');
+    assert.match(fs.readFileSync(path.join(other, 'AGENTS.md'), 'utf8'), /reviewed with Mâché/, 'a note for agents');
+    const colors = vscode.workspace.getConfiguration('workbench').inspect('colorCustomizations').workspaceValue;
+    assert.equal(colors && colors['editorInlayHint.foreground'], '#f14c4c', 'red for removed text');
     fs.rmSync(other, { recursive: true, force: true });
   },
 };

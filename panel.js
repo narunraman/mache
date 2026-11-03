@@ -49,7 +49,9 @@ const ICONS = {
   reply: '<path d="M6.5 4L3 7.5 6.5 11"/><path d="M3 7.5h6.5A3.5 3.5 0 0 1 13 11v1.5"/>',
   resolve: '<circle cx="8" cy="8" r="5.5"/><path d="M5.5 8.2l1.8 1.8 3.3-3.6"/>',
   reopen: '<path d="M3.5 8a4.5 4.5 0 1 0 1.4-3.3"/><path d="M3.5 2.5v2.5H6"/>',
-  edited: '<path d="M10.5 3l2.5 2.5-6.5 6.5H4v-2.5z"/>',
+  // An edit: words out, words in (a plus over a minus, split by a slash).
+  edited: '<path d="M4.5 2.5v4M2.5 4.5h4M9.5 11.5h4M12 3.5l-8 9"/>',
+  pencil: '<path d="M10.5 3l2.5 2.5-6.5 6.5H4v-2.5z"/>',
   rewrite: '<path d="M3 5h8.5M9 2.5L11.5 5 9 7.5M13 11H4.5M7 8.5L4.5 11 7 13.5"/>',
   addition: '<path d="M8 3.5v9M3.5 8h9"/>',
   deletion: '<path d="M3.5 8h9"/>',
@@ -153,11 +155,12 @@ function html(n) {
   .msg .who { font-family: var(--vscode-font-family); font-size: 12px; font-weight: 700; color: var(--note); }
   .msg.agent .who { color: var(--edit); }
   .msg .when { font-family: var(--vscode-font-family); font-size: 11px; color: var(--muted); margin-left: 6px; }
-  /* A small, faint pencil after the time of each of your own messages. */
-  .msg .who .msg-edit { width: 18px; height: 18px; padding: 1px; margin-left: 2px; vertical-align: middle; color: var(--muted); opacity: .6; }
-  .msg .who .msg-edit svg { width: 13px; height: 13px; }
-  .msg:hover .who .msg-edit, .msg .who .msg-edit:focus-visible { opacity: 1; }
-  .msg .who .msg-edit:hover { color: var(--vscode-textLink-foreground); }
+  /* A message's first line: who, when, and on your own messages a pencil at the right. */
+  .msg .msg-head { display: flex; align-items: center; min-height: 20px; }
+  .msg .msg-head .msg-edit { width: 20px; height: 20px; margin-left: auto; padding: 0; color: var(--vscode-foreground); opacity: .75; }
+  .msg .msg-head .msg-edit svg { width: 14px; height: 14px; }
+  .msg:hover .msg-head .msg-edit, .msg .msg-head .msg-edit:focus-visible { opacity: 1; }
+  .msg .msg-head .msg-edit:hover { color: var(--vscode-textLink-foreground); }
   .msg .text { white-space: pre-wrap; word-break: break-word; margin-top: 1px; line-height: 1.45; }
   .thread-actions { display: flex; gap: 4px; margin-left: -6px; font-family: var(--vscode-font-family); font-size: 11px; }
   .gone { margin-top: 4px; font-style: italic; color: var(--muted); }
@@ -312,14 +315,14 @@ function thread(note, quote, insert, lead) {
   note.messages.forEach((m, i) => {
     const agent = m.from === 'agent';
     const row = el('div', 'msg ' + (agent ? 'agent' : 'user'));
-    const who = el('div');
+    const who = el('div', 'msg-head');
     who.appendChild(el('span', 'who', agent ? 'Agent' : 'You'));
     if (m.at || m.edited) who.appendChild(el('span', 'when', (m.at ? ago(m.at) : '') + (m.edited ? (m.at ? ' ' : '') + '(edited)' : '')));
     const editKey = 'edit:' + note.id + ':' + i;
     const editing = !agent && drafts[editKey] !== undefined;
     // You can rewrite your own messages; the agent's are its own.
     if (!agent && !editing) {
-      who.appendChild(iconButton('edited', 'Edit your comment', 'msg-edit', () => { drafts[editKey] = m.text; focusKey = editKey; render(); }));
+      who.appendChild(iconButton('pencil', 'Edit your comment', 'msg-edit', () => { drafts[editKey] = m.text; focusKey = editKey; render(); }));
     }
     row.appendChild(who);
     if (editing) {
