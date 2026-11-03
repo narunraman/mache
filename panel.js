@@ -153,6 +153,8 @@ function html(n) {
   .msg .who { font-family: var(--vscode-font-family); font-size: 12px; font-weight: 700; color: var(--note); }
   .msg.agent .who { color: var(--edit); }
   .msg .when { font-family: var(--vscode-font-family); font-size: 11px; color: var(--muted); margin-left: 6px; }
+  .msg .who .msg-edit { font-size: 11px; font-weight: 400; padding: 0 4px; margin-left: 4px; color: var(--muted); }
+  .msg .who .msg-edit:hover { color: var(--vscode-textLink-foreground); }
   .msg .text { white-space: pre-wrap; word-break: break-word; margin-top: 1px; line-height: 1.45; }
   .thread-actions { display: flex; gap: 4px; margin-left: -6px; font-family: var(--vscode-font-family); font-size: 11px; }
   .gone { margin-top: 4px; font-style: italic; color: var(--muted); }
@@ -279,10 +281,10 @@ function body(card, key, cls, segs, onclick) {
   }
 }
 
-function composer(key, placeholder, onSubmit, onCancel) {
+function composer(key, placeholder, onSubmit, onCancel, label) {
   const wrap = el('div', 'composer');
   const ta = el('textarea');
-  ta.placeholder = placeholder + '  (Ctrl+Enter to post)';
+  ta.placeholder = placeholder + '  (Ctrl+Enter to ' + (label ? label.toLowerCase() : 'post') + ')';
   ta.dataset.key = key;
   ta.value = drafts[key] || '';
   ta.oninput = () => { drafts[key] = ta.value; };
@@ -294,7 +296,7 @@ function composer(key, placeholder, onSubmit, onCancel) {
   wrap.appendChild(ta);
   const row = el('div', 'row');
   const cancel = el('button', 'secondary', 'Cancel'); cancel.onclick = onCancel; row.appendChild(cancel);
-  const post = el('button', 'primary', 'Comment'); post.onclick = submit; row.appendChild(post);
+  const post = el('button', 'primary', label || 'Comment'); post.onclick = submit; row.appendChild(post);
   wrap.appendChild(row);
   return wrap;
 }
@@ -309,9 +311,20 @@ function thread(note, quote, insert, lead) {
     const row = el('div', 'msg ' + (agent ? 'agent' : 'user'));
     const who = el('div');
     who.appendChild(el('span', 'who', agent ? 'Agent' : 'You'));
-    if (m.at) who.appendChild(el('span', 'when', ago(m.at)));
+    if (m.at || m.edited) who.appendChild(el('span', 'when', (m.at ? ago(m.at) : '') + (m.edited ? (m.at ? ' ' : '') + '(edited)' : '')));
+    const editKey = 'edit:' + note.id + ':' + i;
+    const editing = !agent && drafts[editKey] !== undefined;
+    // You can rewrite your own messages; the agent's are its own.
+    if (!agent && !editing) {
+      const b = textButton(null, 'Edit', () => { drafts[editKey] = m.text; focusKey = editKey; render(); });
+      b.classList.add('msg-edit');
+      who.appendChild(b);
+    }
     row.appendChild(who);
-    row.appendChild(el('div', 'text', m.text));
+    if (editing) {
+      row.appendChild(composer(editKey, 'Edit…', text => { if (text !== m.text) send('edit', { id: note.id, index: i, text }); else render(); },
+        () => { delete drafts[editKey]; render(); }, 'Save'));
+    } else row.appendChild(el('div', 'text', m.text));
     // A change the agent made in answer sits inside its reply.
     if (insert && insert.at === i) row.appendChild(insert.el);
     t.appendChild(row);
@@ -495,7 +508,7 @@ function render() {
   }
   if (focusKey) {
     const ta = document.querySelector('textarea[data-key="' + CSS.escape(focusKey) + '"]');
-    if (ta) { ta.focus(); ta.scrollIntoView({ block: 'nearest' }); }
+    if (ta) { ta.focus(); ta.setSelectionRange(ta.value.length, ta.value.length); ta.scrollIntoView({ block: 'nearest' }); }
     focusKey = null;
   }
 }

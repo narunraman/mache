@@ -854,6 +854,14 @@ async function onPanelMessage(m) {
     case 'reply':
       if (withNote(n => n.messages.push({ from: 'user', text: m.text, at: new Date().toISOString() }))) recordStep(st, `author: replied on ${st.rel}#${m.id}`, { Action: 'reply', From: 'user', File: st.rel, Text: m.text });
       break;
+    case 'edit': {
+      // Only the author's own messages; the message keeps its place, so who spoke last is unchanged.
+      let before;
+      if (withNote(n => { const msg = n.messages[m.index]; if (msg && msg.from === 'user') { before = msg.text; msg.text = m.text; msg.edited = new Date().toISOString(); } }) && before !== undefined) {
+        recordStep(st, `author: edited a message on ${st.rel}#${m.id}`, { Action: 'edit-message', From: 'user', File: st.rel, Was: before, Text: m.text });
+      }
+      break;
+    }
     case 'resolve': case 'reopen': {
       let first = '';
       if (withNote(n => { n.status = m.cmd === 'resolve' ? 'resolved' : 'open'; first = n.messages[0] ? n.messages[0].text : ''; })) recordStep(st, `author: ${m.cmd === 'resolve' ? 'resolved' : 'reopened'} ${st.rel}#${m.id}`, { Action: m.cmd, File: st.rel, Comment: first });

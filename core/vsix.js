@@ -1,6 +1,11 @@
 'use strict';
 // Pack the extension as a .vsix (a zip with a manifest) and install it into VS Code, with
 // nothing but Node: `mache setup` and `mache vsix` use this.
+//
+// This is a minimal packer for local installs only (`code --install-extension`, or Install from
+// VSIX…). Its manifest lists no README or license assets, so the VS Code Marketplace rejects
+// what it writes (error TF400898). Build Marketplace uploads with `npm run package:marketplace`
+// (the official vsce), which takes its file list from package.json's "files".
 const fs = require('fs');
 const os = require('os');
 const path = require('path');

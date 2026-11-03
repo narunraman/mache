@@ -20,7 +20,7 @@ If you edit over Remote-SSH, the extension has to be installed on the remote mac
 files are: choose "Install in SSH: <host>" in the Extensions view, or run `mache setup` there. A
 copy installed only on your laptop does nothing for files opened over SSH.
 
-`mache setup` installs the extension from the Marketplace into the `code` command's VS Code and, if you connect to this machine with Remote-SSH or a tunnel, into the VS Code server there too. Where the Marketplace isn't available (offline, or Cursor and VSCodium) it installs a package built from your copy instead; `mache vsix` writes that package to install by hand.
+`mache setup` installs the extension from the Marketplace into the `code` command's VS Code and, if you connect to this machine with Remote-SSH or a tunnel, into the VS Code server there too. Where the Marketplace isn't available (offline, or Cursor and VSCodium) it installs a package built from your copy instead; `mache vsix` writes that package to install by hand (Extensions → ⋯ → Install from VSIX…). It is not a Marketplace package: see Releasing below.
 
 Two editor settings make removed text red and show it at full length. kagaz adds them to a paper's workspace; otherwise add them yourself:
 
@@ -90,6 +90,7 @@ Run `mache` anywhere inside a paper; `mache help` lists everything.
 | `mache` | comments waiting for a reply (newest first), suggestions pending, what to do next |
 | `mache comments [--waiting] [--all]` | comment threads, waiting ones first |
 | `mache reply <id> "…"` | answer a comment; `--change <file>:<line>` names the edit that answers it |
+| `mache edit <id> "…"` | rewrite your own most recent message in that thread (it keeps its place, so whether the thread is waiting does not change) |
 | `mache comment <file>:<line> "…"` | start a thread on a line (`--quote "…"` to anchor on exact words) |
 | `mache explain <file>:<line> "…"` | say why you made the edit at that line |
 | `mache status` | every pending suggestion, per file (`--json`) |
@@ -98,9 +99,9 @@ Run `mache` anywhere inside a paper; `mache help` lists everything.
 | `mache summary` | the commit message for everything since the last commit |
 | `mache commit` | commit the accepted text with that message (`--no-edit` skips the editor) |
 | `mache setup` | install the Mâché extension into this machine's VS Code |
-| `mache vsix [file]` | write the extension package |
+| `mache vsix [file]` | write the extension package, to install by hand (not for the Marketplace) |
 
-Messages are the agent's unless you add `--as user`. Accepting, rejecting and resolving are not commands: they are the author's calls, made in the editor.
+Messages are the agent's unless you add `--as user`. In the panel you can edit your own messages (Edit, next to your name); edited messages show "(edited)". Accepting, rejecting and resolving are not commands: they are the author's calls, made in the editor.
 
 ## Where things live
 
@@ -126,6 +127,13 @@ A paper has one `.review/` folder, at the nearest folder above its files that ha
 npm test               # the comparison, comments and the mache command (a second or two)
 npm run test:vscode    # the extension inside a real VS Code (set VSCODE_BIN if it is not found)
 ```
+
+## Releasing
+
+Marketplace uploads are built with the official packager, `npm run package:marketplace`
+(`vsce package`), which writes `mache-<version>.vsix` with the files listed under `"files"` in
+`package.json`; `npx -y @vscode/vsce@3 ls` shows what goes in. The package `mache vsix` writes is
+for installing by hand only: the Marketplace rejects it (TF400898).
 
 ## License
 

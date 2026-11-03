@@ -103,3 +103,27 @@ test('start takes the main files and what they input; stop lets a file go', t =>
   assert.match(fs.readFileSync(path.join(root, 'paper', 'intro.tex'), 'utf8'), /one in five/, 'the file itself is untouched');
   assert.match(run('stop', 'intro.tex'), /None of those files is under review/);
 });
+
+test('edit rewrites the caller\'s own latest message and keeps who spoke last', t => {
+  const { root, run } = paper(t);
+  run('start');
+  run('comment', 'intro.tex:3', '--as', 'user', 'The exact number?');
+  run('reply', 'n1', 'It is about 20%.');
+  assert.throws(() => run('edit', 'n1'), /usage: mache edit/);
+  assert.match(run('edit', 'n1', 'It is 20% in the figure data.'), /Edited your last message on paper\/intro.tex#n1/);
+  run('edit', 'n1', '--as', 'user', 'The exact number, please?');
+  const [note] = JSON.parse(fs.readFileSync(path.join(root, '.review', 'paper', 'intro.notes.json'), 'utf8')).notes;
+  assert.deepEqual(note.messages.map(m => [m.from, m.text]), [['user', 'The exact number, please?'], ['agent', 'It is 20% in the figure data.']]);
+  assert.ok(note.messages.every(m => !isNaN(Date.parse(m.edited))), 'each edited message has an edited time');
+  assert.match(run('comments'), /author \(edited\): The exact number, please\?/);
+  assert.match(run(), /No comments are waiting/, 'the agent still had the last word');
+  const log = execFileSync('git', ['log', '-1', '--format=%B'],
+    { encoding: 'utf8', env: { ...process.env, GIT_DIR: path.join(root, '.review', 'history.git') } });
+  assert.match(log, /^author: edited a message on paper\/intro.tex#n1/);
+  assert.match(log, /Action: edit-message/);
+  assert.match(log, /Text: The exact number, please\?/);
+
+  // The agent cannot edit in a thread it has not written in.
+  run('comment', 'intro.tex:5', '--as', 'user', 'Keep this?');
+  assert.throws(() => run('edit', 'n2', 'Sure.'), /the agent has no message in paper\/intro.tex#n2/);
+});

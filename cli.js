@@ -15,6 +15,7 @@ const HELP = `mache — suggestions, comments and history for a LaTeX paper
   (no command)                   what is waiting: comments to answer, suggestions pending
   comments [--waiting] [--all]   comment threads, waiting ones first (--waiting: only those)
   reply <id> <text>              answer a comment; --change <file>:<line> names the edit that answers it
+  edit <id> <text>               rewrite your own latest message in that thread
   comment <file>:<line> <text>   start a thread on that line (--quote "<text>" to anchor on exact words)
   explain <file>:<line> <text>   say why you made the suggestion at that line
   status                         every pending suggestion, per file
@@ -137,7 +138,7 @@ function printComment(c) {
   const where = c.answeredBy ? `  answered by the ${c.answeredBy}` : c.onSuggestion ? `  on a suggestion (${c.onSuggestion})` : '';
   console.log(`${c.ref}  line ${c.line}${c.waiting ? '  WAITING' : c.status === 'resolved' ? '  (resolved)' : ''}${where}`);
   if (c.quote) console.log(`  “${short(c.quote)}”${c.moved ? '  [this text has since changed]' : ''}`);
-  for (const m of c.messages) console.log(`  ${m.from === 'agent' ? 'agent' : 'author'}: ${m.text}`);
+  for (const m of c.messages) console.log(`  ${m.from === 'agent' ? 'agent' : 'author'}${m.edited ? ' (edited)' : ''}: ${m.text}`);
   console.log('');
 }
 
@@ -191,6 +192,30 @@ async function reply(root, opts) {
   await project.record(root, `${from === 'agent' ? 'agent' : 'author'}: reply on ${f.rel}#${n.id}`,
     { Action: 'reply', From: from, File: f.rel, Comment: short(n.messages[0] && n.messages[0].text, 200), Text: text });
   console.log(`Replied on ${f.rel}#${n.id}${changed ? `, answered by the ${changed}` : ''}.`);
+}
+
+// Rewrite the caller's most recent message in a thread. The message keeps its place (and its
+// time), so who had the last word, and with it whether the thread is waiting, does not change.
+async function edit(root, opts) {
+  const [ref, ...words] = opts._;
+  const text = words.join(' ').trim();
+  if (!ref || !text) fail('usage: mache edit <file#id | id> <text>');
+  const from = opts.as === 'user' ? 'user' : 'agent';
+  const who = from === 'agent' ? 'agent' : 'author';
+  const { f, n } = findComment(root, ref);
+  const before = editNotes(f, list => {
+    const msgs = list.find(x => x.id === n.id).messages;
+    const i = msgs.map(m => m.from === from).lastIndexOf(true);
+    if (i < 0) return null;
+    const old = msgs[i].text;
+    msgs[i].text = text;
+    msgs[i].edited = new Date().toISOString();
+    return old;
+  });
+  if (before === null) fail(`the ${who} has no message in ${f.rel}#${n.id} to edit`);
+  await project.record(root, `${who}: edited a message on ${f.rel}#${n.id}`,
+    { Action: 'edit-message', From: from, File: f.rel, Comment: short(n.messages[0] && n.messages[0].text, 200), Was: before, Text: text });
+  console.log(`Edited your last message on ${f.rel}#${n.id}.`);
 }
 
 // The suggestion at <file>:<line>, as { f, s }.
@@ -367,7 +392,7 @@ async function main() {
     fail('no .review/ folder here or above; start with: mache start');
   }
   if (!cmd) { overview(root); return; }
-  const commands = { status, comments: listComments, reply, comment, explain, start, stop, summary, commit };
+  const commands = { status, comments: listComments, reply, edit, comment, explain, start, stop, summary, commit };
   if (!commands[cmd]) fail(`unknown command "${cmd}"\n\n${HELP}`);
   await commands[cmd](root, opts);
 }

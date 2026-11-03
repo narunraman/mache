@@ -111,6 +111,21 @@ const tests = {
     const texts = JSON.parse(fs.readFileSync(notesFile, 'utf8')).notes[0].messages.map(m => m.text);
     assert.deepEqual(texts.slice(-2), ['AGENT', 'USER']);
   },
+  async 'you can edit your own messages, not the agent\'s'() {
+    const at = BASE.indexOf('roughly');
+    const anchor = { quote: 'roughly', prefix: BASE.slice(at - 20, at), suffix: BASE.slice(at + 7, at + 27), offset: at };
+    await fresh([{ id: 'n1', status: 'open', anchor, messages: [{ from: 'user', text: 'Number?', at: '2026-01-01T00:00:00Z' }, { from: 'agent', text: 'About 20%.' }] }]);
+    await api().panelMessage({ cmd: 'edit', id: 'n1', index: 0, text: 'The exact number?' });
+    await api().panelMessage({ cmd: 'edit', id: 'n1', index: 1, text: 'HIJACKED' });
+    const msgs = JSON.parse(fs.readFileSync(notesFile, 'utf8')).notes[0].messages;
+    assert.deepEqual(msgs.map(m => [m.from, m.text]), [['user', 'The exact number?'], ['agent', 'About 20%.']], 'the agent still has the last word');
+    assert.ok(!isNaN(Date.parse(msgs[0].edited)), 'the edit is timestamped');
+    assert.equal(msgs[0].at, '2026-01-01T00:00:00Z', 'the message keeps its time');
+    assert.equal(msgs[1].edited, undefined);
+    const shown = api().panelState().cards.flatMap(c => c.notes).find(n => n.id === 'n1').messages[0];
+    assert.equal(shown.text, 'The exact number?');
+    assert.ok(shown.edited, 'the panel gets the edited time to show "(edited)"');
+  },
   async 'Accept keeps the comment open; Accept & resolve closes it'() {
     const at = BASE.indexOf('roughly');
     const anchor = { quote: 'roughly', prefix: BASE.slice(at - 20, at), suffix: BASE.slice(at + 7, at + 27), offset: at };
