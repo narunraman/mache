@@ -2,7 +2,7 @@
   "name": "mache",
   "displayName": "Mâché",
   "description": "Review an agent's edits to a LaTeX paper: suggestions, comments and history.",
-  "version": "0.1.6",
+  "version": "0.1.7",
   "publisher": "narunraman",
   "license": "MIT",
   "repository": {

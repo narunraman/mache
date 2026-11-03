@@ -153,7 +153,10 @@ function html(n) {
   .msg .who { font-family: var(--vscode-font-family); font-size: 12px; font-weight: 700; color: var(--note); }
   .msg.agent .who { color: var(--edit); }
   .msg .when { font-family: var(--vscode-font-family); font-size: 11px; color: var(--muted); margin-left: 6px; }
-  .msg .who .msg-edit { font-size: 11px; font-weight: 400; padding: 0 4px; margin-left: 4px; color: var(--muted); }
+  /* A small, faint pencil after the time of each of your own messages. */
+  .msg .who .msg-edit { width: 18px; height: 18px; padding: 1px; margin-left: 2px; vertical-align: middle; color: var(--muted); opacity: .6; }
+  .msg .who .msg-edit svg { width: 13px; height: 13px; }
+  .msg:hover .who .msg-edit, .msg .who .msg-edit:focus-visible { opacity: 1; }
   .msg .who .msg-edit:hover { color: var(--vscode-textLink-foreground); }
   .msg .text { white-space: pre-wrap; word-break: break-word; margin-top: 1px; line-height: 1.45; }
   .thread-actions { display: flex; gap: 4px; margin-left: -6px; font-family: var(--vscode-font-family); font-size: 11px; }
@@ -316,9 +319,7 @@ function thread(note, quote, insert, lead) {
     const editing = !agent && drafts[editKey] !== undefined;
     // You can rewrite your own messages; the agent's are its own.
     if (!agent && !editing) {
-      const b = textButton(null, 'Edit', () => { drafts[editKey] = m.text; focusKey = editKey; render(); });
-      b.classList.add('msg-edit');
-      who.appendChild(b);
+      who.appendChild(iconButton('edited', 'Edit your comment', 'msg-edit', () => { drafts[editKey] = m.text; focusKey = editKey; render(); }));
     }
     row.appendChild(who);
     if (editing) {
