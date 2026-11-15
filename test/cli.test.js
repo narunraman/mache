@@ -127,3 +127,18 @@ test('edit rewrites the caller\'s own latest message and keeps who spoke last', 
   run('comment', 'intro.tex:5', '--as', 'user', 'Keep this?');
   assert.throws(() => run('edit', 'n2', 'Sure.'), /the agent has no message in paper\/intro.tex#n2/);
 });
+
+test('the author resolves and reopens a thread; an agent cannot', t => {
+  const { run, root } = paper(t);
+  run('start');
+  run('comment', 'intro.tex:3', 'Which documents?', '--as', 'user');
+  const spawn = require('child_process').spawnSync;
+  const agent = spawn('node', [CLI, 'resolve', 'n1'], { cwd: path.join(root, 'paper'), encoding: 'utf8' });
+  assert.notEqual(agent.status, 0);
+  assert.match(agent.stderr, /author's call/);
+  assert.match(run('resolve', 'n1', '--as', 'user'), /Resolved paper\/intro\.tex#n1/);
+  const all = JSON.parse(run('comments', '--json', '--all'));
+  assert.equal(all.find(c => c.id === 'n1').status, 'resolved');
+  assert.match(run('reopen', 'n1', '--as', 'user'), /Reopened/);
+  assert.equal(JSON.parse(run('comments', '--json', '--all')).find(c => c.id === 'n1').status, 'open');
+});

@@ -1,6 +1,6 @@
 # Mâché
 
-Mâché lets you write a LaTeX paper with an AI agent the way you would with a co-author in Google Docs. The agent edits your `.tex` files directly; in VS Code you see its edits as suggestions — added words in green, removed words in red, moved paragraphs as moves — with comment threads that you and the agent both write in, and nothing becomes part of the paper until you accept it. It works on any LaTeX project and with any agent that can run a command, keeps a private record of every step, and turns each round of review into one clean git commit. It is part of [kagaz](https://github.com/narunraman/kagaz), a kit for writing papers, and works without it.
+Mâché lets you write a LaTeX paper with an AI agent the way you would with a co-author in Google Docs. The agent edits your `.tex` files directly; in VS Code you see its edits as suggestions — added words in green, removed words in red, moved paragraphs as moves — with comment threads that you and the agent both write in, and nothing becomes part of the paper until you accept it. It works on any LaTeX project and with any agent that can run a command, keeps a private record of every step, and turns each round of review into one clean git commit.
 
 ![An agent's edits in VS Code with Mâché: removed words in red, added words in green, a moved paragraph, and the review panel](media/screenshots/editor.png)
 
@@ -123,7 +123,7 @@ Messages are the agent's unless you add `--as user`. In the panel you can edit y
 .review/history.git                        the private step-by-step history
 ```
 
-A paper has one `.review/` folder, at the nearest folder above its files that has one; `mache start` creates it at the paper's root (the folder with `kagaz.toml`, else the top of the git repository). The accepted copies change only through your Accept, Reject and own edits.
+A paper has one `.review/` folder, at the nearest folder above its files that has one; `mache start` creates it at the paper's root, the top of its git repository. The accepted copies change only through your Accept, Reject and own edits.
 
 ## Known limits
 

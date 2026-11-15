@@ -16,6 +16,7 @@ const HELP = `mache — suggestions, comments and history for a LaTeX paper
   comments [--waiting] [--all]   comment threads, waiting ones first (--waiting: only those)
   reply <id> <text>              answer a comment; --change <file>:<line> names the edit that answers it
   edit <id> <text>               rewrite your own latest message in that thread
+  resolve <id> / reopen <id>     the author closes or reopens a thread (needs --as user)
   comment <file>:<line> <text>   start a thread on that line (--quote "<text>" to anchor on exact words)
   explain <file>:<line> <text>   say why you made the suggestion at that line
   status                         every pending suggestion, per file
@@ -218,6 +219,22 @@ async function edit(root, opts) {
   console.log(`Edited your last message on ${f.rel}#${n.id}.`);
 }
 
+// Resolve or reopen a thread. These are the author's calls (made in the editor, or on the
+// paper's web page), so they need --as user; an agent answers and leaves resolving to the author.
+async function setStatus(root, opts, status) {
+  const [ref] = opts._;
+  if (!ref) fail(`usage: mache ${status === 'resolved' ? 'resolve' : 'reopen'} <file#id | id> --as user`);
+  if (opts.as !== 'user') fail('resolving is the author\'s call: an agent replies, and the author resolves (add --as user if you are the author)');
+  const { f, n } = findComment(root, ref);
+  if (n.status === status) { console.log(`${f.rel}#${n.id} is already ${status}.`); return; }
+  editNotes(f, list => { list.find(x => x.id === n.id).status = status; });
+  await project.record(root, `author: ${status === 'resolved' ? 'resolved' : 'reopened'} ${f.rel}#${n.id}`,
+    { Action: status === 'resolved' ? 'resolve' : 'reopen', File: f.rel, Comment: short(n.messages[0] && n.messages[0].text, 200) });
+  console.log(`${status === 'resolved' ? 'Resolved' : 'Reopened'} ${f.rel}#${n.id}.`);
+}
+const resolve = (root, opts) => setStatus(root, opts, 'resolved');
+const reopen = (root, opts) => setStatus(root, opts, 'open');
+
 // The suggestion at <file>:<line>, as { f, s }.
 function suggestionAt(root, where) {
   const m = where && where.match(/^(.*):(\d+)$/);
@@ -392,7 +409,7 @@ async function main() {
     fail('no .review/ folder here or above; start with: mache start');
   }
   if (!cmd) { overview(root); return; }
-  const commands = { status, comments: listComments, reply, edit, comment, explain, start, stop, summary, commit };
+  const commands = { status, comments: listComments, reply, edit, resolve, reopen, comment, explain, start, stop, summary, commit };
   if (!commands[cmd]) fail(`unknown command "${cmd}"\n\n${HELP}`);
   await commands[cmd](root, opts);
 }
